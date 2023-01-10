@@ -1,23 +1,72 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaArrowUp } from "react-icons/fa";
 import { useSocketContext } from "../SocketContext";
 
-const ClientPage = () => {
-  const { socket, isConnected } = useSocketContext();
-  const [message, setMessage] = useState("");
-  const handleSent = () => {
-    socket.emit("send", message);
-  };
+type MessageProps = {
+  text: string;
+  isMine: boolean;
+};
+type MessageType = {
+  text: string;
+  isMine: boolean;
+  date: Date;
+};
+const MessageBubble = ({ text, isMine }: MessageProps) => {
   return (
-    <div className="flex justify-center items-center">
-      <div className="h-96 w-60 bg-neutral-700 rounded-lg flex flex-col">
-        <div className="flex-1 flex"></div>
+    <div
+      className={`p-2 h-fit max-w-[150px] w-fit font-semibold rounded-2xl
+    ${isMine ? "bg-sky-500 self-end" : "bg-black"}`}
+    >
+      <p className="break-words">{text}</p>
+    </div>
+  );
+};
+const ClientPage = () => {
+  const { socket } = useSocketContext();
+  const msgContainerRef = useRef<HTMLDivElement>(null);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<MessageType[]>([]);
+  const handleSent = () => {
+    if (message.trim() === "") return;
+    socket.emit("send", message);
+    setMessages((prev) => [
+      ...prev,
+      { text: message, isMine: true, date: new Date() },
+    ]);
+    setMessage("");
+  };
+  useEffect(() => {
+    socket.on("receive", (msg: string) => {
+      console.log(msg);
+      setMessages((prev) => [
+        ...prev,
+        { text: msg, isMine: false, date: new Date() },
+      ]);
+    });
+    return () => {
+      socket.off("receive");
+    };
+  }, []);
+  useEffect(() => {
+    msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
+  }, [messages]);
+  return (
+    <div className="flex justify-center h-full items-center">
+      <div
+        ref={msgContainerRef}
+        className="h-96 w-64 bg-neutral-700 overflow-y-auto rounded-lg flex flex-col"
+      >
+        <div className="flex-1 px-2 flex flex-col justify-end gap-4">
+          {messages.map((msg) => (
+            <MessageBubble text={msg.text} isMine={msg.isMine} />
+          ))}
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSent();
           }}
-          className=" p-2 flex rounded-lg"
+          className="flex rounded-lg sticky bottom-0"
         >
           <input
             className="bg-neutral-800 rounded-lg outline-none"

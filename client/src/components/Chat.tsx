@@ -14,7 +14,7 @@ type MessageType = {
 const MessageBubble = ({ text, isMine }: MessageProps) => {
   return (
     <div
-      className={`p-2 max-w-lg h-fit w-fit text-xl font-semibold rounded-2xl
+      className={`p-2 max-w-xs md:max-w-lg h-fit w-fit text-xl font-semibold rounded-2xl
     ${isMine ? "bg-sky-500 self-end" : "bg-neutral-600"}`}
     >
       <p className="break-words">{text}</p>
@@ -76,7 +76,7 @@ const Chat = () => {
           ))}
         </div>
         <form
-          className="h-16 flex px-5 gap-3 mb-3 items-center w-full"
+          className="h-16 flex sticky bottom-0 px-5 gap-3 items-center w-full"
           onSubmit={(e) => {
             e.preventDefault();
             handleSend();
