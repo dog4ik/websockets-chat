@@ -9,18 +9,23 @@ import { io, Socket } from "socket.io-client";
 type ContextType = {
   isConnected: boolean;
   socket: Socket;
+  socketId?: string;
 };
-const socket = io("http://localhost:5000", { path: "/socket" });
+const socket = io(import.meta.env.VITE_SERVER_URL, { path: "/socket" });
 export const SocketContext = createContext<ContextType>({
   socket,
   isConnected: false,
+  socketId: undefined,
 });
 const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [isConnected, setIsConnected] = useState(socket.connected);
+  const [socketId, setSocketId] = useState(socket.id);
+
   useEffect(() => {
     socket.on("connect", () => {
       console.log(socket.id);
       setIsConnected(true);
+      setSocketId(socket.id);
     });
     socket.on("disconnect", () => {
       setIsConnected(false);
@@ -32,7 +37,7 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
   return (
-    <SocketContext.Provider value={{ isConnected, socket }}>
+    <SocketContext.Provider value={{ isConnected, socket, socketId }}>
       {children}
     </SocketContext.Provider>
   );

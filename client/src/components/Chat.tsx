@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { FaArrowUp } from "react-icons/fa";
 import { useLoaderData } from "react-router-dom";
 import { useSocketContext } from "../SocketContext";
+import { v4 } from "uuid";
+import axios from "axios";
 type MessageProps = {
   text: string;
   isMine: boolean;
@@ -22,24 +24,32 @@ const MessageBubble = ({ text, isMine }: MessageProps) => {
   );
 };
 const Chat = () => {
-  const { socket } = useSocketContext();
-  const data = useLoaderData() as string;
+  const { socket, socketId } = useSocketContext();
+  const name = useLoaderData() as string;
+  const inputRef = useRef<HTMLInputElement>(null);
   const [curMessage, setCurMessage] = useState("");
   const msgContainerRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<MessageType[]>([]);
   const handleSend = () => {
     if (curMessage.trim() === "") return;
-    socket.emit("send", curMessage);
+    socket.emit("send", curMessage, name);
     setMessages((prev) => [
       ...prev,
       { text: curMessage, isMine: true, date: new Date() },
     ]);
     setCurMessage("");
   };
+  const setMeGod = async () => {
+    console.log("socket", socketId);
+    await axios.post(import.meta.env.VITE_SERVER_URL + "/begod", {
+      godId: socketId,
+    });
+  };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
   }, [messages]);
   useEffect(() => {
+    inputRef.current?.focus();
     socket.on("receive", (msg: string) => {
       console.log(msg);
       setMessages((prev) => [
@@ -51,6 +61,9 @@ const Chat = () => {
       socket.off("receive");
     };
   }, []);
+  useEffect(() => {
+    if (socketId) setMeGod();
+  }, [socketId]);
 
   return (
     <div
@@ -60,7 +73,7 @@ const Chat = () => {
       <div className="flex gap-3 bg-neutral-800 sticky top-0 left-0 right-0 p-2 h-20">
         <div className="h-16 rounded-full bg-orange-500 aspect-square" />
         <div className="flex flex-col justify-between py-2">
-          <span className="text-2xl">{data}</span>
+          <span className="text-2xl">{name}</span>
           <div className="flex items-center gap-2">
             <span>Status:</span>
             <div
@@ -72,7 +85,7 @@ const Chat = () => {
       <div className="flex-1 shrink-0 bg-neutral-900 flex justify-end flex-col ">
         <div className="flex-col flex gap-4 px-10">
           {messages.map((msg) => (
-            <MessageBubble isMine={msg.isMine} text={msg.text} />
+            <MessageBubble key={v4()} isMine={msg.isMine} text={msg.text} />
           ))}
         </div>
         <form
@@ -88,6 +101,7 @@ const Chat = () => {
               onChange={(e) => setCurMessage(e.target.value)}
               className="w-full bg-transparent outline-none text-xl placeholder:font-semibold "
               placeholder="Message"
+              ref={inputRef}
             />
           </div>
           <button className=" p-1 bg-white rounded-full cursor-pointer">
