@@ -1,3 +1,4 @@
+import { Provider } from "react-redux";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Chat from "./components/Chat";
 import SelectChatHint from "./components/SelectChatHint";
@@ -6,6 +7,7 @@ import ClientPage from "./pages/ClientPage";
 import ErrorPage from "./pages/ErrorPage";
 import Home from "./pages/Home";
 import SocketProvider from "./SocketContext";
+import { store } from "./store";
 
 function App() {
   const router = createBrowserRouter([
@@ -39,11 +41,13 @@ function App() {
     },
   ]);
   return (
-    <SocketProvider>
-      <div className="bg-black text-white h-screen w-screen">
-        <RouterProvider router={router} />
-      </div>
-    </SocketProvider>
+    <Provider store={store}>
+      <SocketProvider>
+        <div className="bg-black text-white h-screen w-screen">
+          <RouterProvider router={router} />
+        </div>
+      </SocketProvider>
+    </Provider>
   );
 }
 
