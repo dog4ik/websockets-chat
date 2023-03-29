@@ -1,4 +1,4 @@
-import { useSocketContext } from "../SocketContext";
+import { useSocketContext } from "../SupportSocketContext";
 const Status = () => {
   const { socket, isConnected } = useSocketContext();
   socket.on("error", (error) => {

@@ -1,8 +1,11 @@
 import { FaRedo } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { selectClients, setClients, useClientsQuery } from "../store";
+import useConnection from "../hooks/useConnection";
+import { useSocketContext } from "../SupportSocketContext";
+import { useClientsQuery } from "../store";
 type ChatProps = {
   name: string;
+  isOnline: boolean;
 };
 const Chat = ({ name }: ChatProps) => {
   return (
@@ -16,6 +19,12 @@ const Chat = ({ name }: ChatProps) => {
 };
 const SideBar = () => {
   const clientQuery = useClientsQuery(undefined);
+  const { socketId } = useSocketContext();
+  useConnection({
+    onRefresh() {
+      clientQuery.refetch();
+    },
+  });
   if (!clientQuery.data) return null;
   return (
     <div className="h-screen overflow-y-auto w-80 bg-neutral-800">
@@ -29,9 +38,11 @@ const SideBar = () => {
         </div>
       </div>
       <div className="flex flex-col divide-y divide-neutral-700">
-        {clientQuery.data?.clients.map((client) => (
-          <Chat name={client} key={client} />
-        ))}
+        {clientQuery.data
+          ?.filter((item) => item[0] != socketId)
+          .map(([client, isOnline]) => (
+            <Chat name={client} isOnline={isOnline} key={client} />
+          ))}
       </div>
     </div>
   );

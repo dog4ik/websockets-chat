@@ -1,12 +1,17 @@
 import { configureStore, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
+export type ChatMessageType = {
+  text: string;
+  isMine: boolean;
+  date: Date;
+};
 const chatApi = createApi({
   reducerPath: "chatApi",
   baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_SERVER_URL }),
   endpoints: (build) => {
     return {
-      getClients: build.query<{ clients: string[] }, undefined>({
+      getClients: build.query<[string, boolean][], undefined>({
         query: () => "/clients",
       }),
       beGod: build.mutation({
@@ -23,21 +28,53 @@ const chatApi = createApi({
 export const useClientsQuery = chatApi.endpoints.getClients.useQuery;
 export const useGodMutation = chatApi.endpoints.beGod.useMutation;
 
-const clientsSlice = createSlice({
-  name: "clients",
-  initialState: { list: [] as string[] },
+const messagesSlice = createSlice({
+  name: "messages",
+  initialState: [] as ChatMessageType[],
   reducers: {
-    setClients: (state, action: PayloadAction<string[]>) => {
-      state.list = action.payload;
+    push: (state, action: PayloadAction<ChatMessageType>) => {
+      state.push(action.payload);
     },
   },
 });
 
-export const { setClients } = clientsSlice.actions;
+const clientsSlice = createSlice({
+  name: "clients",
+  initialState: {} as { [id: string]: ChatMessageType[] },
+  reducers: {
+    addClient: (state, action: PayloadAction<string>) => {
+      state[action.payload] = [];
+    },
+    pushMessage: (
+      state,
+      action: PayloadAction<{ id: string; message: ChatMessageType }>
+    ) => {
+      const messages = state[action.payload.id];
+      messages?.push(action.payload.message);
+    },
+    setAllClients: (
+      state,
+      action: PayloadAction<{ [id: string]: ChatMessageType[] }[]>
+    ) => {
+      state = action.payload.reduce((acc, curr) => {
+        return { ...acc, ...curr };
+      }, {});
+    },
+    removeClient: (state, action: PayloadAction<string>) => {
+      delete state[action.payload];
+    },
+  },
+});
+
+export const { addClient, pushMessage, removeClient, setAllClients } =
+  clientsSlice.actions;
+
+export const { push } = messagesSlice.actions;
 
 export const store = configureStore({
   reducer: {
     clients: clientsSlice.reducer,
+    messages: messagesSlice.reducer,
     chatApi: chatApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -46,4 +83,5 @@ export const store = configureStore({
 
 export type RootState = ReturnType<typeof store.getState>;
 
-export const selectClients = (state: RootState) => state.clients.list;
+export const selectClients = (state: RootState) => state.clients;
+export const selectMessages = (state: RootState) => state.messages;

@@ -6,7 +6,7 @@ import Status from "./components/Status";
 import ClientPage from "./pages/ClientPage";
 import ErrorPage from "./pages/ErrorPage";
 import Home from "./pages/Home";
-import SocketProvider from "./SocketContext";
+import ClientSocketProvider from "./ClientSocketContext";
 import { store } from "./store";
 
 function App() {
@@ -36,17 +36,19 @@ function App() {
 
     {
       path: "/client",
-      element: <ClientPage />,
+      element: (
+        <ClientSocketProvider>
+          <ClientPage />
+        </ClientSocketProvider>
+      ),
       errorElement: <ErrorPage />,
     },
   ]);
   return (
     <Provider store={store}>
-      <SocketProvider>
-        <div className="bg-black text-white h-screen w-screen">
-          <RouterProvider router={router} />
-        </div>
-      </SocketProvider>
+      <div className="bg-black text-white h-screen w-screen">
+        <RouterProvider router={router} />
+      </div>
     </Provider>
   );
 }

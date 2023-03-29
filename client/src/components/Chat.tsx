@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { FaArrowUp } from "react-icons/fa";
 import { useLoaderData } from "react-router-dom";
-import { useSocketContext } from "../SocketContext";
+import {
+  ClientMessage,
+  ServerMessage,
+  useSocketContext,
+} from "../SupportSocketContext";
 import { v4 } from "uuid";
 import axios from "axios";
+import { ChatMessageType } from "../store";
+import useConnection from "../hooks/useConnection";
 type MessageProps = {
   text: string;
   isMine: boolean;
-};
-type MessageType = {
-  text: string;
-  isMine: boolean;
-  date: Date;
 };
 const MessageBubble = ({ text, isMine }: MessageProps) => {
   return (
@@ -24,46 +25,35 @@ const MessageBubble = ({ text, isMine }: MessageProps) => {
   );
 };
 const Chat = () => {
-  const { socket, socketId } = useSocketContext();
+  const { send } = useSocketContext();
   const name = useLoaderData() as string;
   const inputRef = useRef<HTMLInputElement>(null);
   const [curMessage, setCurMessage] = useState("");
   const msgContainerRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<MessageType[]>([]);
+  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  useConnection({
+    onMessage(msg) {
+      setMessages((prev) => [
+        ...prev,
+        { text: msg.message, isMine: false, date: new Date() },
+      ]);
+    },
+  });
   const handleSend = () => {
     if (curMessage.trim() === "") return;
-    socket.emit("send", curMessage, name);
+    send(curMessage, name);
     setMessages((prev) => [
       ...prev,
       { text: curMessage, isMine: true, date: new Date() },
     ]);
     setCurMessage("");
   };
-  const setMeGod = async () => {
-    console.log("socket", socketId);
-    await axios.post(import.meta.env.VITE_SERVER_URL + "/begod", {
-      godId: socketId,
-    });
-  };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
   }, [messages]);
   useEffect(() => {
     inputRef.current?.focus();
-    socket.on("receive", (msg: string) => {
-      console.log(msg);
-      setMessages((prev) => [
-        ...prev,
-        { text: msg, isMine: false, date: new Date() },
-      ]);
-    });
-    return () => {
-      socket.off("receive");
-    };
   }, []);
-  useEffect(() => {
-    if (socketId) setMeGod();
-  }, [socketId]);
 
   return (
     <div
@@ -72,8 +62,8 @@ const Chat = () => {
     >
       <div className="flex gap-3 bg-neutral-800 sticky top-0 left-0 right-0 p-2 h-20">
         <div className="h-16 rounded-full bg-orange-500 aspect-square" />
-        <div className="flex flex-col justify-between py-2">
-          <span className="text-2xl">{name}</span>
+        <div className="flex flex-col w-2/3 justify-between py-2">
+          <span className="text-2xl truncate">{name}</span>
           <div className="flex items-center gap-2">
             <span>Status:</span>
             <div
