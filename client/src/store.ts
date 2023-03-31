@@ -4,39 +4,21 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export type ChatMessageType = {
   text: string;
   isMine: boolean;
-  date: Date;
+  date: string;
 };
 const chatApi = createApi({
   reducerPath: "chatApi",
   baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_SERVER_URL }),
   endpoints: (build) => {
     return {
-      getClients: build.query<[string, boolean][], undefined>({
-        query: () => "/clients",
-      }),
-      beGod: build.mutation({
-        query: (id: string) => ({
-          url: "/begod",
-          method: "POST",
-          body: { godId: id },
-        }),
+      getClients: build.query<string[], string>({
+        query: (id) => `/getmyclients?id=${id}`,
       }),
     };
   },
 });
 
 export const useClientsQuery = chatApi.endpoints.getClients.useQuery;
-export const useGodMutation = chatApi.endpoints.beGod.useMutation;
-
-const messagesSlice = createSlice({
-  name: "messages",
-  initialState: [] as ChatMessageType[],
-  reducers: {
-    push: (state, action: PayloadAction<ChatMessageType>) => {
-      state.push(action.payload);
-    },
-  },
-});
 
 const clientsSlice = createSlice({
   name: "clients",
@@ -49,6 +31,7 @@ const clientsSlice = createSlice({
       state,
       action: PayloadAction<{ id: string; message: ChatMessageType }>
     ) => {
+      if (!state[action.payload.id]) state[action.payload.id] = [];
       const messages = state[action.payload.id];
       messages?.push(action.payload.message);
     },
@@ -66,15 +49,11 @@ const clientsSlice = createSlice({
   },
 });
 
-export const { addClient, pushMessage, removeClient, setAllClients } =
-  clientsSlice.actions;
-
-export const { push } = messagesSlice.actions;
+export const clientActions = clientsSlice.actions;
 
 export const store = configureStore({
   reducer: {
     clients: clientsSlice.reducer,
-    messages: messagesSlice.reducer,
     chatApi: chatApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -84,4 +63,3 @@ export const store = configureStore({
 export type RootState = ReturnType<typeof store.getState>;
 
 export const selectClients = (state: RootState) => state.clients;
-export const selectMessages = (state: RootState) => state.messages;

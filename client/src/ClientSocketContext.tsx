@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   createContext,
   ReactNode,
@@ -7,8 +6,6 @@ import {
   useState,
 } from "react";
 import useWebSocket from "./hooks/useWebSocket";
-
-type StatusType = "CONNECTING" | "OPEN" | "CLOSED" | "CLOSING";
 
 type ContextType = {
   isConnected: boolean;
@@ -29,6 +26,7 @@ export type Message = {
   type: "Message";
   message: string;
   room: string;
+  from: string;
 };
 
 export type Update = {
@@ -39,31 +37,43 @@ export type Disconnect = {
   type: "Disconnect";
 };
 
-export type ClientMessage = Message | Image;
+export type Switch = {
+  type: "Switch";
+  id: string;
+};
+
+export type Open = {
+  type: "Open";
+  id: string;
+  daddy: string;
+};
+
+export type ClientMessage = Message | Image | Open | Switch;
 
 export const SocketContext = createContext<ContextType>({} as ContextType);
 const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [socketId, setSocketId] = useState<string>();
   const [supportId, setSupportId] = useState<string>();
   const { webSocket, sendMessage, isConnected } = useWebSocket(
-    socketId
-      ? `${import.meta.env.VITE_WS_SERVER_URL}?id=${socketId}`
-      : undefined
+    `${import.meta.env.VITE_WS_SERVER_URL}`
   );
 
   //register
   useEffect(() => {
-    const register = async () => {
-      if (!socketId) {
-        let id = await axios.get<{ id: string; support_id: string }>(
-          import.meta.env.VITE_SERVER_URL + "/register"
-        );
-        setSocketId(id.data.id);
-        setSupportId(id.data.support_id);
+    const handleOpen = (msg: MessageEvent) => {
+      let data: ClientMessage = JSON.parse(msg.data);
+      if (data.type === "Open") {
+        console.log(data);
+        setSocketId(data.id);
+        setSupportId(data.daddy);
+      }
+      if (data.type === "Switch") {
+        setSupportId(data.id);
       }
     };
-    register();
-  }, []);
+    webSocket?.addEventListener("message", handleOpen);
+    return () => webSocket?.removeEventListener("message", handleOpen);
+  }, [webSocket]);
 
   function send(msg: string) {
     if (!supportId) return;
@@ -71,6 +81,7 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
       type: "Message",
       message: msg,
       room: supportId,
+      from: socketId!,
     };
     sendMessage(JSON.stringify(message));
   }

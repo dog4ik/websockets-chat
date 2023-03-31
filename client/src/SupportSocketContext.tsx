@@ -8,8 +8,6 @@ import {
 } from "react";
 import useWebSocket from "./hooks/useWebSocket";
 
-type StatusType = "CONNECTING" | "OPEN" | "CLOSED" | "CLOSING";
-
 type ContextType = {
   isConnected: boolean;
   socket: WebSocket | null;
@@ -28,6 +26,7 @@ export type Message = {
   type: "Message";
   message: string;
   room: string;
+  from: string;
 };
 
 export type Update = {
@@ -38,34 +37,39 @@ export type Disconnect = {
   type: "Disconnect";
 };
 
+export type Open = {
+  type: "Open";
+  id: string;
+};
+
 export type ClientMessage = Message | Image;
 
-export type ServerMessage = Message | Image | Update | Disconnect;
+export type ServerMessage = Message | Image | Update | Disconnect | Open;
 
 export const SocketContext = createContext<ContextType>({} as ContextType);
 const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [socketId, setSocketId] = useState<string>();
   const { webSocket, sendMessage, isConnected } = useWebSocket(
-    socketId
-      ? `${import.meta.env.VITE_WS_SERVER_URL}?id=${socketId}`
-      : undefined
+    `${import.meta.env.VITE_WS_SERVER_URL}?is_support=true`
   );
   //register
   useEffect(() => {
-    const register = async () => {
-      if (!socketId) {
-        let id = await axios.get(import.meta.env.VITE_SERVER_URL + "/begod");
-        setSocketId(id.data);
+    const handleOpen = (msg: MessageEvent) => {
+      let data: ServerMessage = JSON.parse(msg.data);
+      if (data.type === "Open") {
+        setSocketId(data.id);
       }
     };
-    register();
-  }, []);
+    webSocket?.addEventListener("message", handleOpen);
+    return () => webSocket?.removeEventListener("message", handleOpen);
+  }, [webSocket]);
 
   function send(msg: string, room: string) {
     const message: ClientMessage = {
       type: "Message",
       message: msg,
       room: room,
+      from: socketId ?? "",
     };
     sendMessage(JSON.stringify(message));
   }

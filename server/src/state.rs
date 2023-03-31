@@ -1,6 +1,9 @@
 use crate::ws::ServerMessage;
-use axum::{extract::ws::Message, Extension};
-use serde::Serialize;
+use axum::{
+    extract::{ws::Message, Query},
+    Extension,
+};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{broadcast, mpsc::Sender, Mutex};
 
@@ -27,19 +30,9 @@ pub struct RegisterResponse {
     pub support_id: String,
 }
 
-async fn get_help(state: AssignmentsType, my_id: String) -> Option<String> {
-    match state
-        .lock()
-        .await
-        .iter_mut()
-        .min_by_key(|(_, val)| val.len())
-    {
-        Some((id, clients)) => {
-            clients.push(my_id);
-            Some(id.clone())
-        }
-        None => None,
-    }
+#[derive(Deserialize, Clone)]
+pub struct IdQuery {
+    pub id: String,
 }
 
 //NOTE: try standard mutex
@@ -81,58 +74,15 @@ impl ServerState {
         serde_json::to_string(&assignments.lock().await.iter().collect::<Vec<_>>()).unwrap()
     }
 
-    pub async fn register_client(
-        Extension(clients): Extension<ClientsType>,
-        Extension(state): Extension<AssignmentsType>,
-    ) -> String {
-        let uuid = uuid::Uuid::new_v4().to_string();
-        let mut clients = clients.lock().await;
-        //TODO: Error it
-        let support_id = match get_help(state, uuid.to_string()).await {
-            Some(id) => {
-                let sender = clients.get_mut(&id).unwrap();
-                sender
-                    .sender
-                    .clone()
-                    .unwrap()
-                    .send(ServerMessage::Update)
-                    .await
-                    .unwrap();
-                id
-            }
-            None => unimplemented!(),
-        };
-        clients.insert(
-            uuid.to_string(),
-            Client {
-                sender: None,
-                daddy: Some(support_id.clone()),
-            },
-        );
-        println!("registered client with id {}", uuid.to_string());
-        serde_json::to_string(&RegisterResponse {
-            id: uuid.to_string(),
-            support_id,
-        })
-        .unwrap()
-    }
-
-    pub async fn register_support(
-        Extension(clients): Extension<ClientsType>,
+    pub async fn get_clients_for_id(
         Extension(assignments): Extension<AssignmentsType>,
+        query: Query<IdQuery>,
     ) -> String {
-        let uuid = uuid::Uuid::new_v4().to_string();
-        let mut assginments = assignments.lock().await;
-        let mut clients = clients.lock().await;
-        clients.insert(
-            uuid.to_string(),
-            Client {
-                sender: None,
-                daddy: None,
-            },
-        );
-        assginments.insert(uuid.to_string(), vec![]);
-        println!("registered support with id {}", uuid.to_string());
-        uuid.to_string()
+        serde_json::to_string(&assignments.lock().await.get(&query.id)).unwrap()
+    }
+    pub async fn get_all_connections(Extension(clients): Extension<ClientsType>) -> String {
+        let clients = clients.lock().await;
+        serde_json::to_string(&clients.iter().map(|(key, _)| key).collect::<Vec<&String>>())
+            .unwrap()
     }
 }

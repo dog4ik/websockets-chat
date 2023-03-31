@@ -18,8 +18,8 @@ const Chat = ({ name }: ChatProps) => {
   );
 };
 const SideBar = () => {
-  const clientQuery = useClientsQuery(undefined);
   const { socketId } = useSocketContext();
+  const clientQuery = useClientsQuery(socketId ?? "");
   useConnection({
     onRefresh() {
       clientQuery.refetch();
@@ -31,7 +31,7 @@ const SideBar = () => {
       <div className="h-20 bg-neutral-900 px-5 gap-5 flex items-center">
         <span className="text-3xl">Chats</span>
         <div
-          className=" cursor-pointer p-2"
+          className="cursor-pointer p-2"
           onClick={() => clientQuery.refetch()}
         >
           <FaRedo size={20} />
@@ -39,9 +39,9 @@ const SideBar = () => {
       </div>
       <div className="flex flex-col divide-y divide-neutral-700">
         {clientQuery.data
-          ?.filter((item) => item[0] != socketId)
-          .map(([client, isOnline]) => (
-            <Chat name={client} isOnline={isOnline} key={client} />
+          ?.filter((item) => item != socketId)
+          .map((client) => (
+            <Chat name={client} isOnline={true} key={client} />
           ))}
       </div>
     </div>

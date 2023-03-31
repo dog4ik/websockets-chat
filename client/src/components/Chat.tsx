@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { FaArrowUp } from "react-icons/fa";
 import { useLoaderData } from "react-router-dom";
-import {
-  ClientMessage,
-  ServerMessage,
-  useSocketContext,
-} from "../SupportSocketContext";
+import { useSocketContext } from "../SupportSocketContext";
 import { v4 } from "uuid";
-import axios from "axios";
-import { ChatMessageType } from "../store";
+import { clientActions, selectClients } from "../store";
 import useConnection from "../hooks/useConnection";
+import { useDispatch, useSelector } from "react-redux";
 type MessageProps = {
   text: string;
   isMine: boolean;
@@ -30,30 +26,46 @@ const Chat = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [curMessage, setCurMessage] = useState("");
   const msgContainerRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<ChatMessageType[]>([]);
+  const client = useSelector(selectClients);
+  const dispatch = useDispatch();
+
   useConnection({
     onMessage(msg) {
-      setMessages((prev) => [
-        ...prev,
-        { text: msg.message, isMine: false, date: new Date() },
-      ]);
+      dispatch(
+        clientActions.pushMessage({
+          id: msg.from,
+          message: {
+            text: msg.message,
+            isMine: false,
+            date: new Date().toString(),
+          },
+        })
+      );
     },
   });
   const handleSend = () => {
     if (curMessage.trim() === "") return;
     send(curMessage, name);
-    setMessages((prev) => [
-      ...prev,
-      { text: curMessage, isMine: true, date: new Date() },
-    ]);
+    dispatch(
+      clientActions.pushMessage({
+        id: name,
+        message: {
+          text: curMessage,
+          isMine: true,
+          date: new Date().toString(),
+        },
+      })
+    );
     setCurMessage("");
   };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
-  }, [messages]);
+  }, [client[name]?.length]);
   useEffect(() => {
+    if (!client[name]) dispatch(clientActions.addClient(name));
     inputRef.current?.focus();
-  }, []);
+    msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
+  }, [name]);
 
   return (
     <div
@@ -74,7 +86,7 @@ const Chat = () => {
       </div>
       <div className="flex-1 shrink-0 bg-neutral-900 flex justify-end flex-col ">
         <div className="flex-col flex gap-4 px-10">
-          {messages.map((msg) => (
+          {client[name]?.map((msg) => (
             <MessageBubble key={v4()} isMine={msg.isMine} text={msg.text} />
           ))}
         </div>
