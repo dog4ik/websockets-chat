@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 const ErrorPage = () => {
   return (
-    <div className="h-full w-full flex flex-col justify-center gap-5 items-center">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-5">
       <span className="text-4xl">Error</span>
       <div>
         <Link
           to={"/"}
-          className="px-5 py-3 rounded-xl bg-white text-black font-semibold"
+          className="rounded-xl bg-white px-5 py-3 font-semibold text-black"
         >
           Main page
         </Link>

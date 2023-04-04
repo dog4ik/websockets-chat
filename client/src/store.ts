@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export type ChatMessageType = {
   text: string;
+  isReaded: boolean;
   isMine: boolean;
   date: string;
 };
@@ -14,11 +15,17 @@ const chatApi = createApi({
       getClients: build.query<string[], string>({
         query: (id) => `/getmyclients?id=${id}`,
       }),
+      uploadImage: build.mutation<boolean, Uint8Array>({
+        query(file) {
+          return { url: "/img", method: "POST", body: file };
+        },
+      }),
     };
   },
 });
 
 export const useClientsQuery = chatApi.endpoints.getClients.useQuery;
+export const useUploadMutation = chatApi.endpoints.uploadImage.useMutation;
 
 const clientsSlice = createSlice({
   name: "clients",

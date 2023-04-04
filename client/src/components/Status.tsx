@@ -8,10 +8,10 @@ const Status = () => {
     socket.emit("ping", "ping");
   };
   return (
-    <div className="flex h-screen justify-center items-center text-white">
-      <div className="w-2/3 rounded-xl py-10 bg-neutral-800 flex justify-center items-center gap-10 flex-col">
+    <div className="flex h-screen items-center justify-center text-white">
+      <div className="flex w-2/3 flex-col items-center justify-center gap-10 rounded-xl bg-neutral-800 py-10">
         <div
-          className={`p-2 rounded-full ${
+          className={`rounded-full p-2 ${
             isConnected ? "bg-green-500" : "bg-red-500"
           }`}
         ></div>
@@ -20,7 +20,7 @@ const Status = () => {
         </span>
         <div>
           <button
-            className="px-7 py-3 font-semibold bg-white text-black rounded-xl"
+            className="rounded-xl bg-white px-7 py-3 font-semibold text-black"
             onClick={() => sendPing()}
           >
             Ping

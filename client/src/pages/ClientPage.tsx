@@ -13,8 +13,8 @@ type MessageProps = {
 const MessageBubble = ({ text, isMine }: MessageProps) => {
   return (
     <div
-      className={`p-2 mb-2 h-fit max-w-[150px] w-fit font-semibold rounded-2xl
-    ${isMine ? "bg-sky-500 self-end" : "bg-black"}`}
+      className={`mb-2 h-fit w-fit max-w-[150px] rounded-2xl p-2 font-semibold
+    ${isMine ? "self-end bg-sky-500" : "bg-black"}`}
     >
       <p className="break-words">{text}</p>
     </div>
@@ -46,14 +46,14 @@ const ClientPage = () => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
   }, [messages]);
   return (
-    <div className="flex justify-center h-full items-center">
+    <div className="flex h-full items-center justify-center">
       <div
         ref={msgContainerRef}
-        className="h-96 w-64 bg-neutral-700 overflow-y-auto rounded-lg flex flex-col"
+        className="flex h-96 w-64 flex-col overflow-y-auto rounded-lg bg-neutral-700"
       >
         <div>myId: {socketId}</div>
         <div>supportId: {supportId}</div>
-        <div className="flex-1 px-2 flex flex-col justify-end gap-4">
+        <div className="flex flex-1 flex-col justify-end gap-4 px-2">
           {messages.map((msg) => (
             <MessageBubble key={v4()} text={msg.text} isMine={msg.isMine} />
           ))}
@@ -63,17 +63,17 @@ const ClientPage = () => {
             e.preventDefault();
             handleSent();
           }}
-          className="flex rounded-lg sticky bottom-0"
+          className="sticky bottom-0 flex rounded-lg"
         >
           <input
-            className="bg-neutral-800 w-full px-1 rounded-lg outline-none"
+            className="w-full rounded-lg bg-neutral-800 px-1 outline-none"
             value={message}
             onChange={(e) => {
               setMessage(e.target.value);
             }}
           />
           <button
-            className="p-1 rounded-full bg-black"
+            className="rounded-full bg-black p-1"
             onClick={(e) => {
               if (!isConnected) {
                 e.preventDefault();

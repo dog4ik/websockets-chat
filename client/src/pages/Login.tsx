@@ -2,10 +2,10 @@ import Input from "../components/ui/Input";
 
 const Login = () => {
   return (
-    <div className="w-screen flex justify-center items-center">
-      <div className="flex justify-center items-center rounded-xl max-w-2xl w-96 p-10 bg-neutral-700">
+    <div className="flex w-screen items-center justify-center">
+      <div className="flex w-96 max-w-2xl items-center justify-center rounded-xl bg-neutral-700 p-10">
         <form className=" flex flex-col items-center gap-5">
-          <span className="text-white text-2xl text-center">Welcome</span>
+          <span className="text-center text-2xl text-white">Welcome</span>
           <Input label="Login" />
         </form>
       </div>

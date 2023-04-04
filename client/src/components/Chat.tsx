@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from "react";
-import { FaArrowUp } from "react-icons/fa";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FaArrowUp, FaPlus } from "react-icons/fa";
 import { useLoaderData } from "react-router-dom";
 import { useSocketContext } from "../SupportSocketContext";
 import { v4 } from "uuid";
-import { clientActions, selectClients } from "../store";
+import { clientActions, selectClients, useUploadMutation } from "../store";
 import useConnection from "../hooks/useConnection";
 import { useDispatch, useSelector } from "react-redux";
+import InputFile from "./InputFile";
 type MessageProps = {
   text: string;
   isMine: boolean;
@@ -25,7 +26,9 @@ const Chat = () => {
   const name = useLoaderData() as string;
   const inputRef = useRef<HTMLInputElement>(null);
   const [curMessage, setCurMessage] = useState("");
+  const [file, setFile] = useState<Uint8Array>();
   const msgContainerRef = useRef<HTMLDivElement>(null);
+  const [upload, uploadMutation] = useUploadMutation();
   const client = useSelector(selectClients);
   const dispatch = useDispatch();
 
@@ -36,6 +39,7 @@ const Chat = () => {
           id: msg.from,
           message: {
             text: msg.message,
+            isReaded: false,
             isMine: false,
             date: new Date().toString(),
           },
@@ -45,18 +49,21 @@ const Chat = () => {
   });
   const handleSend = () => {
     if (curMessage.trim() === "") return;
+    if (file) upload(file);
     send(curMessage, name);
     dispatch(
       clientActions.pushMessage({
         id: name,
         message: {
           text: curMessage,
+          isReaded: true,
           isMine: true,
           date: new Date().toString(),
         },
       })
     );
     setCurMessage("");
+    setFile(undefined);
   };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
@@ -66,13 +73,23 @@ const Chat = () => {
     inputRef.current?.focus();
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
   }, [name]);
+  if (uploadMutation.data) {
+    console.log(uploadMutation.data);
+  }
+  const url = useMemo(
+    () =>
+      file
+        ? URL.createObjectURL(new Blob([file], { type: "image/png" }))
+        : "todo",
+    [file]
+  );
 
   return (
     <div
       ref={msgContainerRef}
       className="flex h-screen w-full flex-col overflow-y-scroll"
     >
-      <div className="sticky top-0 left-0 right-0 flex h-20 gap-3 bg-neutral-800 p-2">
+      <div className="sticky left-0 right-0 top-0 flex h-20 gap-3 bg-neutral-800 p-2">
         <div className="aspect-square h-16 rounded-full bg-orange-500" />
         <div className="flex w-2/3 flex-col justify-between py-2">
           <span className="truncate text-2xl">{name}</span>
@@ -90,6 +107,19 @@ const Chat = () => {
             <MessageBubble key={v4()} isMine={msg.isMine} text={msg.text} />
           ))}
         </div>
+        {file && (
+          <div className="bg-gradient-to-t from-white/10 to-transparent px-5">
+            <div className="relative h-32 w-32">
+              <div
+                onClick={() => setFile(undefined)}
+                className="absolute right-0.5 top-0.5 flex h-8 w-8 rotate-45 cursor-pointer items-center justify-center rounded-full bg-black/80"
+              >
+                <FaPlus size={20} fill="white" />
+              </div>
+              <img src={url} className="h-32 w-32 object-cover"></img>
+            </div>
+          </div>
+        )}
         <form
           className="sticky bottom-0 flex h-16 w-full items-center gap-3 px-5"
           onSubmit={(e) => {
@@ -106,6 +136,12 @@ const Chat = () => {
               ref={inputRef}
             />
           </div>
+          <InputFile
+            haveFile={!!file}
+            onUpload={(file) => {
+              setFile(file);
+            }}
+          />
           <button className=" cursor-pointer rounded-full bg-white p-1">
             <FaArrowUp className="rounded-full fill-green-500 " size={40} />
           </button>

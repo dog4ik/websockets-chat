@@ -4,9 +4,9 @@ import SupportSocketProvider from "../SupportSocketContext";
 const Home = () => {
   return (
     <SupportSocketProvider>
-      <div className="flex flex-1 h-screen">
+      <div className="flex h-screen flex-1">
         <SideBar />
-        <div className="flex-1 w-2/3 h-full">
+        <div className="h-full w-2/3 flex-1">
           <Outlet />
         </div>
       </div>

@@ -46,7 +46,7 @@ function App() {
   ]);
   return (
     <Provider store={store}>
-      <div className="bg-black text-white h-screen w-screen">
+      <div className="h-screen w-screen bg-black text-white">
         <RouterProvider router={router} />
       </div>
     </Provider>
