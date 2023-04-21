@@ -212,6 +212,11 @@ impl MessagesStore {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct ServerState {}
+
+impl ServerState {
     pub async fn get_clients(
         Extension(state): Extension<ClientsType>,
         Extension(assignments): Extension<AssignmentsType>,
@@ -239,14 +244,20 @@ impl MessagesStore {
     }
 
     pub async fn get_clients_for_id(
-        Extension(assignments): Extension<AssignmentsType>,
+        Extension(assignments): Extension<Assignments>,
         query: Query<IdQuery>,
     ) -> String {
-        serde_json::to_string(&assignments.lock().await.get(&query.id)).unwrap()
+        serde_json::to_string(&assignments.assignments.lock().await.get(&query.id)).unwrap()
     }
+
     pub async fn get_all_connections(Extension(clients): Extension<ClientsType>) -> String {
         let clients = clients.lock().await;
         serde_json::to_string(&clients.iter().map(|(key, _)| key).collect::<Vec<&String>>())
             .unwrap()
+    }
+
+    pub async fn get_orphans(Extension(orphans): Extension<Arc<Mutex<Vec<String>>>>) -> String {
+        let orphans = orphans.lock().await;
+        serde_json::to_string(&orphans.to_vec()).unwrap()
     }
 }
