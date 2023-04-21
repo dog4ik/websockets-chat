@@ -15,15 +15,30 @@ pub struct Client {
     pub daddy: Option<String>,
 }
 
-pub type ClientsType = Arc<Mutex<HashMap<String, Client>>>;
-pub type AssignmentsType = Arc<Mutex<HashMap<String, Vec<String>>>>;
-pub type SenderType = Arc<Mutex<broadcast::Sender<(Message, usize)>>>;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Reaction {
+    Joy,
+    Pain,
+    Laugh,
+    Anger,
+}
 
-#[derive(Debug)]
-pub struct ServerState {
-    pub sender: SenderType,
-    pub clients: ClientsType,
-    pub assignments: AssignmentsType,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum MessageType {
+    Text {
+        msg: String,
+    },
+    Image {
+        bytes: Vec<u8>,
+        msg: Option<String>,
+    },
+    Reaction {
+        reaction: Reaction,
+        message_id: String,
+    },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MessageEntry {
     pub id: String,
