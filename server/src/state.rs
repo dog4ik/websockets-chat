@@ -63,12 +63,49 @@ pub struct IdQuery {
     pub id: String,
 }
 
-//NOTE: try standard mutex
-impl ServerState {
-    pub fn new() -> ServerState {
-        let (sender, _) = broadcast::channel(100);
-        let sender = Arc::new(Mutex::new(sender));
+#[derive(Debug, Clone)]
+pub struct Clients {
+    pub clients: ClientsType,
+}
+impl Clients {
+    pub fn new() -> Clients {
         let clients = Arc::new(Mutex::new(HashMap::new()));
+        Clients { clients }
+    }
+    pub async fn send_message(&self, to: String, msg: ServerMessage) -> Result<(), anyhow::Error> {
+        let clients = self.clients.lock().await;
+        let client = clients.get(&to).ok_or(anyhow::anyhow!("not found"))?;
+        if client.is_online == false {
+            return Err(anyhow::anyhow!("client is offline"));
+        };
+        let sender = client.sender.as_ref().ok_or(anyhow::anyhow!("not found"))?;
+        sender.send(msg).await?;
+        Ok(())
+    }
+    pub async fn add(&self, id: String, client: Client) {
+        let mut clients = self.clients.lock().await;
+        clients.insert(id, client);
+    }
+    pub async fn remove(&self, id: &str) {
+        let mut clients = self.clients.lock().await;
+        clients.remove(id).unwrap();
+    }
+    pub async fn set_offline(&self, id: &str) {
+        let mut clients = self.clients.lock().await;
+        let client = clients.get_mut(id).unwrap();
+        client.is_online = false;
+    }
+    pub async fn set_online(&self, id: &str) {
+        let mut clients = self.clients.lock().await;
+        let client = clients.get_mut(id).unwrap();
+        client.is_online = true;
+    }
+    pub async fn get_daddy(&self, id: &str) -> Option<String> {
+        let clients = self.clients.lock().await;
+        clients.get(id).unwrap().daddy.clone()
+    }
+}
+
         let assignments = Arc::new(Mutex::new(HashMap::new()));
         ServerState {
             sender,
