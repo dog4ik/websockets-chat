@@ -106,11 +106,70 @@ impl Clients {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Assignments {
+    pub assignments: AssignmentsType,
+    pub supporters_count: Arc<usize>,
+    pub wait_list: Arc<Mutex<Vec<String>>>,
+}
+
+impl Assignments {
+    pub fn new() -> Assignments {
         let assignments = Arc::new(Mutex::new(HashMap::new()));
-        ServerState {
-            sender,
-            clients,
+        let wait_list = Arc::new(Mutex::new(Vec::new()));
+
+        Assignments {
             assignments,
+            supporters_count: Arc::new(0),
+            wait_list,
+        }
+    }
+    pub async fn add_support(&self, id: String) {
+        let mut assignments = self.assignments.lock().await;
+        let mut wait_list = self.wait_list.lock().await;
+        if wait_list.len() > 0 {
+            assignments.insert(id, wait_list.to_vec());
+            wait_list.clear();
+        } else {
+            assignments.insert(id, vec![]);
+        }
+    }
+    pub async fn add_client(&self, id: String) -> Option<String> {
+        let mut wait_list = self.wait_list.lock().await;
+        match self
+            .assignments
+            .lock()
+            .await
+            .iter_mut()
+            .min_by_key(|(_, val)| val.len())
+        {
+            Some((support_id, clients)) => {
+                clients.push(id);
+                Some(support_id.clone())
+            }
+            None => {
+                wait_list.push(id);
+                None
+            }
+        }
+    }
+    pub async fn remove_support(&self, id: &str) -> Vec<String> {
+        let mut assignments = self.assignments.lock().await;
+        let clients = assignments.get(id).unwrap().clone();
+        assignments.remove(id).unwrap();
+        clients
+    }
+    pub async fn remove_client(&self, support_id: &str, id: &str) {
+        let mut assignments = self.assignments.lock().await;
+        let clients = assignments.get_mut(support_id).unwrap();
+        clients.retain(|c_id| c_id.as_str() != id)
+    }
+    pub async fn remove_from_wait_list(&self, id: &str) {
+        let mut wait_list = self.wait_list.lock().await;
+        wait_list.retain(|item| item != id);
+    }
+}
+
         }
     }
     pub async fn get_clients(
