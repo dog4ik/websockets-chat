@@ -170,8 +170,48 @@ impl Assignments {
     }
 }
 
+#[derive(Clone)]
+pub struct MessagesStore {
+    pub messages: MessagesType,
+}
+
+impl MessagesStore {
+    pub fn new() -> MessagesStore {
+        let messages = Arc::new(Mutex::new(HashMap::new()));
+        MessagesStore { messages }
+    }
+    pub async fn add(&self, msg: MessageEntry) {
+        let mut messages = self.messages.lock().await;
+        if !messages.contains_key(&msg.from) {
+            messages.insert(msg.from.clone(), vec![]);
+        }
+        let messages = messages.get_mut(&msg.from).unwrap();
+        messages.push(msg);
+    }
+    pub async fn get(&self, id: &str) -> Option<Vec<MessageEntry>> {
+        self.messages.lock().await.get(id).cloned()
+    }
+    pub async fn get_with_id(&self, user_id: &str, msg_id: &str) -> Option<MessageEntry> {
+        let storage = self.messages.lock().await;
+        let messages = storage.get(user_id).unwrap();
+        messages
+            .iter()
+            .filter(|item| item.id == msg_id)
+            .next()
+            .cloned()
+    }
+    pub async fn get_all(&self) -> String {
+        let store = self.messages.lock().await;
+        let messages = store.values().collect::<Vec<&Vec<MessageEntry>>>();
+        serde_json::to_string(&messages).unwrap()
+    }
+    pub async fn remove_user(&self, user_id: &str) -> Result<(), anyhow::Error> {
+        match self.messages.lock().await.remove(user_id) {
+            Some(_) => Ok(()),
+            None => Err(anyhow::anyhow!("no entry")),
         }
     }
+}
     pub async fn get_clients(
         Extension(state): Extension<ClientsType>,
         Extension(assignments): Extension<AssignmentsType>,
