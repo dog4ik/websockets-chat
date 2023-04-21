@@ -22,7 +22,33 @@ pub struct ServerState {
     pub sender: SenderType,
     pub clients: ClientsType,
     pub assignments: AssignmentsType,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessageEntry {
+    pub id: String,
+    pub to: String,
+    pub from: String,
+    pub msg: MessageType,
+    pub date: String,
 }
+
+impl MessageEntry {
+    pub fn new(from: String, to: String, msg: MessageType) -> MessageEntry {
+        let uuid = uuid::Uuid::new_v4().to_string();
+        //TODO: Dates
+        let date = "fake date".to_string();
+        MessageEntry {
+            date,
+            id: uuid,
+            from,
+            to,
+            msg,
+        }
+    }
+}
+
+pub type ClientsType = Arc<Mutex<HashMap<String, Client>>>;
+pub type AssignmentsType = Arc<Mutex<HashMap<String, Vec<String>>>>;
+pub type MessagesType = Arc<Mutex<HashMap<String, Vec<MessageEntry>>>>;
 
 #[derive(Debug, Serialize)]
 pub struct RegisterResponse {
