@@ -1,11 +1,8 @@
 use crate::ws::ServerMessage;
-use axum::{
-    extract::{ws::Message, Query},
-    Extension,
-};
+use axum::{extract::Query, Extension};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::{broadcast, mpsc::Sender, Mutex};
+use tokio::sync::{mpsc::Sender, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct Client {
