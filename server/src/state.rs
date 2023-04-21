@@ -9,6 +9,8 @@ use tokio::sync::{broadcast, mpsc::Sender, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct Client {
+    pub is_online: bool,
+    pub is_support: bool,
     pub sender: Option<Sender<ServerMessage>>,
     pub daddy: Option<String>,
 }
