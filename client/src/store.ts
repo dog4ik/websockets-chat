@@ -42,6 +42,18 @@ const clientsSlice = createSlice({
       const messages = state[action.payload.id];
       messages?.push(action.payload.message);
     },
+    readMeassage: (
+      state,
+      action: PayloadAction<{ userId: string; msgId: string }>
+    ) => {
+      if (!state[action.payload.userId]) return;
+      console.log("msg");
+      let message = state[action.payload.userId].find(
+        (item) => item.id === action.payload.msgId
+      );
+
+      if (message) message.isReaded = true;
+    },
     setAllClients: (
       state,
       action: PayloadAction<{ [id: string]: ChatMessageType[] }[]>
