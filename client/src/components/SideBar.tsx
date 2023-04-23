@@ -2,21 +2,34 @@ import { FaRedo } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import useConnection from "../hooks/useConnection";
 import { useSocketContext } from "../SupportSocketContext";
-import { selectClients, useClientsQuery } from "../store";
+import { ChatMessageType, selectClients, useClientsQuery } from "../store";
 import { useSelector } from "react-redux";
 type ChatProps = {
   name: string;
-  lastMsg?: string;
+  lastMsg?: ChatMessageType;
+  unreadedAmount: number;
   isOnline: boolean;
 };
-const Chat = ({ name, lastMsg }: ChatProps) => {
+const Chat = ({ name, lastMsg, unreadedAmount }: ChatProps) => {
   return (
     <Link
       to={`/chats/${name}`}
-      className="flex h-20 w-full cursor-pointer flex-col items-start justify-between px-5 transition-colors duration-200 hover:bg-neutral-700"
+      className="flex h-20 w-full cursor-pointer flex-col items-start justify-center px-5 transition-colors duration-200 hover:bg-neutral-700"
     >
-      <span className="w-full truncate">{name}</span>
-      {lastMsg && <span>{lastMsg}</span>}
+      <span className="w-full truncate text-lg">{name.split("-")[0]}</span>
+      {lastMsg && (
+        <div className="flex w-full items-center gap-2">
+          <span className="text-white/80">
+            {lastMsg.isMine ? "Me:" : "Him:"}
+          </span>
+          <span className="w-full truncate text-sm">{lastMsg.text}</span>
+          {unreadedAmount ? (
+            <div className="flex aspect-square h-8 items-center justify-center rounded-full bg-white">
+              <span className="text-black">{unreadedAmount}</span>
+            </div>
+          ) : null}
+        </div>
+      )}
     </Link>
   );
 };
@@ -42,15 +55,21 @@ const SideBar = () => {
         {clientQuery.data
           ?.filter((item) => item != socketId)
           .map((client) => {
-            let lastMsg = "";
             const messages = clients[client];
+            let lastMsg = undefined;
+            let unreaded = 0;
             if (messages) {
-              lastMsg = messages[messages?.length - 1]?.text ?? "";
+              unreaded = messages.reduce((sum, msg) => {
+                if (!msg.isReaded && !msg.isMine) return sum + 1;
+                else return sum;
+              }, 0);
+              lastMsg = messages[messages?.length - 1];
             }
             return (
               <Chat
                 name={client}
                 lastMsg={lastMsg}
+                unreadedAmount={unreaded}
                 isOnline={true}
                 key={client}
               />
