@@ -3,6 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export type ChatMessageType = {
   text: string;
+  id: string;
   isReaded: boolean;
   isMine: boolean;
   date: string;
