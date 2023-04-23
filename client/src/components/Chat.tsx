@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FaArrowUp, FaPlus } from "react-icons/fa";
+import { FaArrowUp, FaCheck, FaClock, FaPlus } from "react-icons/fa";
 import { useLoaderData } from "react-router-dom";
 import { useSocketContext } from "../SupportSocketContext";
-import { v4 } from "uuid";
 import { clientActions, selectClients, useUploadMutation } from "../store";
 import useConnection from "../hooks/useConnection";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,6 +9,8 @@ import InputFile from "./InputFile";
 type MessageProps = {
   text: string;
   isMine: boolean;
+  isViewed: boolean;
+  isSending: boolean;
   onIntoView: () => void;
 };
 const options: IntersectionObserverInit = {
@@ -59,10 +60,14 @@ const MessageBubble = ({
 
   return (
     <div
-      className={`h-fit w-fit max-w-xs rounded-2xl p-2 text-xl font-semibold md:max-w-lg
+      ref={observableRef}
+      className={`relative h-fit w-fit max-w-xs rounded-2xl p-2 text-xl font-semibold md:max-w-lg
     ${isMine ? "self-end bg-sky-500" : "bg-neutral-600"}`}
     >
-      <p className="break-words">{text}</p>
+      <p className="mb-2 break-words">{text}</p>
+      <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center">
+        <StatusMark isViewed={isViewed} isSending={isSending} />
+      </div>
     </div>
   );
 };
@@ -79,28 +84,49 @@ const Chat = () => {
 
   useConnection({
     onMessage(msg) {
-      dispatch(
-        clientActions.pushMessage({
-          id: msg.from,
-          message: {
-            text: msg.message,
-            isReaded: false,
-            isMine: false,
-            date: new Date().toString(),
-          },
-        })
-      );
+      console.log(msg);
+      switch (msg.msg.type) {
+        case "Text":
+          dispatch(
+            clientActions.pushMessage({
+              id: msg.from,
+              message: {
+                text: msg.msg.msg,
+                id: msg.id,
+                isReaded: false,
+                isMine: false,
+                date: new Date().toString(),
+              },
+            })
+          );
+          break;
+        case "Image":
+          dispatch(
+            clientActions.pushMessage({
+              id: msg.from,
+              message: {
+                text: "image",
+                id: msg.id,
+                isReaded: false,
+                isMine: false,
+                date: new Date().toString(),
+              },
+            })
+          );
+          break;
+      }
     },
   });
-  const handleSend = () => {
+  const handleSend = async () => {
     if (curMessage.trim() === "") return;
     if (file) upload(file);
-    send(curMessage, name);
+    const { id } = await send(curMessage, name);
     dispatch(
       clientActions.pushMessage({
         id: name,
         message: {
           text: curMessage,
+          id,
           isReaded: true,
           isMine: true,
           date: new Date().toString(),
@@ -137,7 +163,7 @@ const Chat = () => {
       <div className="sticky left-0 right-0 top-0 flex h-20 gap-3 bg-neutral-800 p-2">
         <div className="aspect-square h-16 rounded-full bg-orange-500" />
         <div className="flex w-2/3 flex-col justify-between py-2">
-          <span className="truncate text-2xl">{name}</span>
+          <span className="truncate text-2xl">{name.split("-")[0]}</span>
           <div className="flex items-center gap-2">
             <span>Status:</span>
             <div
@@ -149,7 +175,13 @@ const Chat = () => {
       <div className="flex flex-1 shrink-0 flex-col justify-end bg-neutral-900 ">
         <div className="flex flex-col gap-4 px-10">
           {client[name]?.map((msg) => (
-            <MessageBubble key={v4()} isMine={msg.isMine} text={msg.text} />
+            <MessageBubble
+              isViewed={msg.isReaded}
+              key={msg.id}
+              //WARN: todo
+              isSending={false}
+              isMine={msg.isMine}
+              text={msg.text}
               onIntoView={() => {
                 dispatch(
                   clientActions.readMeassage({ msgId: msg.id, userId: name })
