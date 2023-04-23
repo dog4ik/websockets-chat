@@ -35,6 +35,7 @@ pub enum ServerMessage {
     Update,
     Disconnect,
     Result { id: String },
+    Read { id: String },
 }
 
 fn process_msg(msg: &Message) -> anyhow::Result<ClientMessage> {
@@ -263,7 +264,8 @@ pub async fn handle_socket(
                     },
                     ClientMessage::Image { bytes, message, to } => unimplemented!(),
                     ClientMessage::Read { to, id } => {
-                        clients.send_message(to, ServerMessage::Result { id }).await.unwrap();
+                        println!("read recieved");
+                        clients.send_message(to, ServerMessage::Read { id }).await.unwrap();
                     },
                 };
 
