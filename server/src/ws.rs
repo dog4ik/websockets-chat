@@ -34,7 +34,7 @@ pub enum ServerMessage {
     Switch { id: Option<String> },
     Update,
     Disconnect,
-    SendResult { id: String },
+    Result { id: String },
 }
 
 fn process_msg(msg: &Message) -> anyhow::Result<ClientMessage> {
@@ -255,7 +255,7 @@ pub async fn handle_socket(
                         let msg = MessageEntry::new(connection.id.clone(), to.clone(), msg);
                         clients.send_message(to.clone(),ServerMessage::Message(msg.clone())).await.unwrap();
                         // response with send result
-                        send_message(socket,&ServerMessage::SendResult { id: msg.id.clone() }).await.unwrap();
+                        send_message(socket,&ServerMessage::Result { id: msg.id.clone() }).await.unwrap();
                         msg_store.add(msg).await;
                     }
                     ClientMessage::Disconnect => {
@@ -263,7 +263,7 @@ pub async fn handle_socket(
                     },
                     ClientMessage::Image { bytes, message, to } => unimplemented!(),
                     ClientMessage::Read { to, id } => {
-                        clients.send_message(to, ServerMessage::SendResult { id }).await.unwrap();
+                        clients.send_message(to, ServerMessage::Result { id }).await.unwrap();
                     },
                 };
 
