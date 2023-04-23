@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import {
   Message,
+  Result,
   ServerMessage,
   useSocketContext,
 } from "../SupportSocketContext";
@@ -8,6 +9,7 @@ import {
 const useConnection = (actions: {
   onRefresh?: () => void;
   onMessage?: (msg: Message) => void;
+  onSendResult?: (res: Result) => void;
 }) => {
   const { socket } = useSocketContext();
 
@@ -17,6 +19,7 @@ const useConnection = (actions: {
       let parsed: ServerMessage = JSON.parse(msg.data);
       if (parsed.type === "Update") actions.onRefresh?.();
       if (parsed.type === "Message") actions.onMessage?.(parsed);
+      if (parsed.type === "Result") actions.onSendResult?.(parsed);
     };
     socket?.addEventListener("message", handleMessage);
     return () => {

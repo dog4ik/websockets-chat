@@ -42,9 +42,34 @@ export type Open = {
   id: string;
 };
 
-export type ClientMessage = Message | Image;
+export type Result = {
+  type: "Result";
+  id: string;
+};
 
-export type ServerMessage = Message | Image | Update | Disconnect | Open;
+export type Read = {
+  type: "Read";
+  user: string;
+  msg_id: string;
+};
+
+export type ClientMessage =
+  | { type: "Message"; to: string; from: string; message: string }
+  | {
+      type: "Image";
+      to: string;
+      from: string;
+      bytes: Uint8Array;
+      message?: string;
+    };
+
+export type ServerMessage =
+  | Message
+  | Update
+  | Disconnect
+  | Open
+  | Result
+  | Read;
 
 export const SocketContext = createContext<ContextType>({} as ContextType);
 const SocketProvider = ({ children }: { children: ReactNode }) => {
@@ -71,6 +96,25 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
       room: room,
       from: socketId ?? "",
     };
+    let promise = new Promise<{ id: string }>((resolve, reject) => {
+      if (!webSocket) {
+        reject("no connection established");
+        return;
+      }
+      let timeout = setTimeout(() => {
+        reject("timeout");
+        return;
+      }, 1_000);
+      const handleResult = (msg: MessageEvent) => {
+        const parsed: ServerMessage = JSON.parse(msg.data);
+        if (parsed.type === "Result") {
+          webSocket.removeEventListener("message", handleResult);
+          clearTimeout(timeout);
+          resolve({ id: parsed.id });
+        }
+      };
+      webSocket.addEventListener("message", handleResult);
+    });
     sendMessage(JSON.stringify(message));
   }
 
