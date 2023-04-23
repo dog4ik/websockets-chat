@@ -10,8 +10,53 @@ import InputFile from "./InputFile";
 type MessageProps = {
   text: string;
   isMine: boolean;
+  onIntoView: () => void;
 };
-const MessageBubble = ({ text, isMine }: MessageProps) => {
+const options: IntersectionObserverInit = {
+  root: null,
+  rootMargin: "0px",
+  threshold: 0,
+};
+
+const StatusMark = ({
+  isViewed,
+  isSending,
+}: {
+  isSending: boolean;
+  isViewed: boolean;
+}) => {
+  if (isSending) return <FaClock size={10} />;
+  if (isViewed)
+    return (
+      <div className="relative flex items-center justify-center">
+        <FaCheck size={10} />
+        <FaCheck className="-translate-x-1/2" size={10} />
+      </div>
+    );
+  return <FaCheck size={10} />;
+};
+const MessageBubble = ({
+  text,
+  isViewed,
+  isMine,
+  onIntoView,
+  isSending,
+}: MessageProps) => {
+  const observableRef = useRef<HTMLDivElement>(null);
+  const onObserve = (entires: IntersectionObserverEntry[]) => {
+    const [entry] = entires;
+    if (entry.isIntersecting && !isViewed) {
+      onIntoView();
+    }
+  };
+  useEffect(() => {
+    const observer = new IntersectionObserver(onObserve, options);
+    if (observableRef.current) observer.observe(observableRef.current);
+    return () => {
+      if (observableRef.current) observer.unobserve(observableRef.current);
+    };
+  }, [observableRef.current, options]);
+
   return (
     <div
       className={`h-fit w-fit max-w-xs rounded-2xl p-2 text-xl font-semibold md:max-w-lg
@@ -105,6 +150,12 @@ const Chat = () => {
         <div className="flex flex-col gap-4 px-10">
           {client[name]?.map((msg) => (
             <MessageBubble key={v4()} isMine={msg.isMine} text={msg.text} />
+              onIntoView={() => {
+                dispatch(
+                  clientActions.readMeassage({ msgId: msg.id, userId: name })
+                );
+              }}
+            />
           ))}
         </div>
         {file && (
