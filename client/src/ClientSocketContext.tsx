@@ -6,43 +6,35 @@ import {
   useState,
 } from "react";
 import useWebSocket from "./hooks/useWebSocket";
+import { ServerMessage } from "./SupportSocketContext";
 
 type ContextType = {
   isConnected: boolean;
   socket: WebSocket | null;
   supportId?: string;
   socketId?: string;
-  send: (msg: string) => void;
+  send: (msg: string) => Promise<{ id: string }>;
 };
 
-export type Image = {
-  type: "Message";
-  message: string;
+type Image = {
+  type: "Image";
+  message?: string;
   bytes: number[];
-  room: string;
+  to: string;
 };
 
-export type Message = {
+type Message = {
   type: "Message";
   message: string;
-  room: string;
-  from: string;
+  to: string;
 };
 
-export type Update = {
-  type: "Update";
-};
-
-export type Disconnect = {
-  type: "Disconnect";
-};
-
-export type Switch = {
+type Switch = {
   type: "Switch";
   id: string;
 };
 
-export type Open = {
+type Open = {
   type: "Open";
   id: string;
   daddy: string;
@@ -75,15 +67,37 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     return () => webSocket?.removeEventListener("message", handleOpen);
   }, [webSocket]);
 
-  function send(msg: string) {
-    if (!supportId) return;
+  async function send(msg: string): Promise<{
+    id: string;
+  }> {
+    if (!supportId) throw Error("Nobody send to");
     const message: ClientMessage = {
       type: "Message",
       message: msg,
-      room: supportId,
-      from: socketId!,
+      to: supportId,
     };
+    let promise = new Promise<{ id: string }>((resolve, reject) => {
+      if (!webSocket) {
+        reject("no connection established");
+        return;
+      }
+      let timeout = setTimeout(() => {
+        reject("timeout");
+        return;
+      }, 1_000);
+      const handleResult = (msg: MessageEvent) => {
+        const parsed: ServerMessage = JSON.parse(msg.data);
+        //TODO: verify message here
+        if (parsed.type === "Result") {
+          webSocket.removeEventListener("message", handleResult);
+          clearTimeout(timeout);
+          resolve({ id: parsed.id });
+        }
+      };
+      webSocket.addEventListener("message", handleResult);
+    });
     sendMessage(JSON.stringify(message));
+    return promise;
   }
 
   return (

@@ -1,4 +1,3 @@
-import axios from "axios";
 import {
   createContext,
   ReactNode,
@@ -12,20 +11,26 @@ type ContextType = {
   isConnected: boolean;
   socket: WebSocket | null;
   socketId?: string;
-  send: (msg: string, room: string) => void;
+  send: (msg: string, room: string) => Promise<{ id: string }>;
 };
 
-export type Image = {
-  type: "Message";
-  message: string;
-  bytes: number[];
-  room: string;
+export type MsgImg = {
+  type: "Image";
+  msg?: string;
+  bytes: Uint8Array;
+};
+
+export type MsgText = {
+  type: "Text";
+  msg: string;
 };
 
 export type Message = {
   type: "Message";
-  message: string;
-  room: string;
+  msg: MsgImg | MsgText;
+  id: string;
+  to: string;
+  date: string;
   from: string;
 };
 
@@ -89,11 +94,17 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     return () => webSocket?.removeEventListener("message", handleOpen);
   }, [webSocket]);
 
-  function send(msg: string, room: string) {
+  //TODO: local id to verify what message is delivered
+  async function send(
+    msg: string,
+    to: string
+  ): Promise<{
+    id: string;
+  }> {
     const message: ClientMessage = {
       type: "Message",
       message: msg,
-      room: room,
+      to,
       from: socketId ?? "",
     };
     let promise = new Promise<{ id: string }>((resolve, reject) => {
@@ -116,6 +127,7 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
       webSocket.addEventListener("message", handleResult);
     });
     sendMessage(JSON.stringify(message));
+    return promise;
   }
 
   return (
