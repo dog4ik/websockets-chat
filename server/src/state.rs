@@ -86,11 +86,11 @@ impl Clients {
     }
     pub async fn send_message(&self, to: String, msg: ServerMessage) -> Result<(), anyhow::Error> {
         let clients = self.clients.lock().await;
-        let client = clients.get(&to).ok_or(anyhow::anyhow!("not found"))?;
+        let client = clients.get(&to).ok_or(anyhow::anyhow!("cilent not found"))?;
         if client.is_online == false {
             return Err(anyhow::anyhow!("client is offline"));
         };
-        let sender = client.sender.as_ref().ok_or(anyhow::anyhow!("not found"))?;
+        let sender = client.sender.as_ref().ok_or(anyhow::anyhow!("client channel not found"))?;
         sender.send(msg).await?;
         Ok(())
     }
