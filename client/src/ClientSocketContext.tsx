@@ -14,6 +14,7 @@ type ContextType = {
   supportId?: string;
   socketId?: string;
   send: (msg: string) => Promise<{ id: string }>;
+  sendRead: (to: string, msg_id: string) => void;
 };
 
 type Image = {
@@ -39,8 +40,13 @@ type Open = {
   id: string;
   daddy: string;
 };
+type Read = {
+  type: "Read";
+  id: string;
+  to: string;
+};
 
-export type ClientMessage = Message | Image | Open | Switch;
+export type ClientMessage = Message | Image | Open | Switch | Read;
 
 export const SocketContext = createContext<ContextType>({} as ContextType);
 const SocketProvider = ({ children }: { children: ReactNode }) => {
@@ -67,6 +73,14 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     return () => webSocket?.removeEventListener("message", handleOpen);
   }, [webSocket]);
 
+  async function sendRead(to: string, id: string) {
+    const message: ClientMessage = {
+      type: "Read",
+      to,
+      id,
+    };
+    sendMessage(JSON.stringify(message));
+  }
   async function send(msg: string): Promise<{
     id: string;
   }> {
@@ -102,7 +116,14 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <SocketContext.Provider
-      value={{ isConnected, socket: webSocket, socketId, send, supportId }}
+      value={{
+        isConnected,
+        socket: webSocket,
+        socketId,
+        send,
+        supportId,
+        sendRead,
+      }}
     >
       {children}
     </SocketContext.Provider>

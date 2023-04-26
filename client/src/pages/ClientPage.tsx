@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { FaArrowUp, FaSpinner, FaSync } from "react-icons/fa";
 import { useSocketContext } from "../ClientSocketContext";
-import { v4 } from "uuid";
 import { ChatMessageType } from "../store";
 import useConnection from "../hooks/useClientConnection";
 
 type MessageProps = {
   text: string;
   isMine: boolean;
+  isViewed: boolean;
+  onIntoView: () => void;
+};
+
+const options: IntersectionObserverInit = {
+  root: null,
+  rootMargin: "0px",
+  threshold: 0,
 };
 const Loading = () => {
   return (
@@ -18,9 +25,30 @@ const Loading = () => {
     </div>
   );
 };
-const MessageBubble = ({ text, isMine }: MessageProps) => {
+const MessageBubble = ({
+  text,
+  isMine,
+  onIntoView,
+  isViewed,
+}: MessageProps) => {
+  const observableRef = useRef<HTMLDivElement>(null);
+  const onObserve = (entires: IntersectionObserverEntry[]) => {
+    const [entry] = entires;
+    if (entry.isIntersecting && !isViewed) {
+      onIntoView();
+    }
+  };
+  useEffect(() => {
+    const observer = new IntersectionObserver(onObserve, options);
+    if (observableRef.current) observer.observe(observableRef.current);
+    return () => {
+      if (observableRef.current) observer.unobserve(observableRef.current);
+    };
+  }, [observableRef.current, options]);
+
   return (
     <div
+      ref={observableRef}
       className={`mb-2 h-fit w-fit max-w-[150px] rounded-2xl p-2 font-semibold
     ${isMine ? "self-end bg-sky-500" : "bg-black"}`}
     >
@@ -29,7 +57,8 @@ const MessageBubble = ({ text, isMine }: MessageProps) => {
   );
 };
 const ClientPage = () => {
-  const { socketId, send, isConnected, supportId } = useSocketContext();
+  const { socketId, send, isConnected, supportId, sendRead } =
+    useSocketContext();
   const msgContainerRef = useRef<HTMLDivElement>(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessageType[]>([]);
@@ -71,10 +100,20 @@ const ClientPage = () => {
     ]);
     setMessage("");
   };
+  const handleRead = (id: string) => {
+    setMessages((prev) =>
+      prev.map((item) => {
+        if (!item.isReaded && item.id == id) {
+          return { ...item, isReaded: true };
+        }
+        return item;
+      })
+    );
+  };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
-  }, [messages]);
-  if (!supportId) return <Loading />;
+  }, [messages.length]);
+  if (!supportId || !socketId) return <Loading />;
   return (
     <div>
       <div>myId: {socketId}</div>
@@ -86,7 +125,16 @@ const ClientPage = () => {
         >
           <div className="flex flex-1 flex-col justify-end gap-4 px-2">
             {messages.map((msg) => (
-              <MessageBubble key={v4()} text={msg.text} isMine={msg.isMine} />
+              <MessageBubble
+                key={msg.id}
+                text={msg.text}
+                isMine={msg.isMine}
+                isViewed={msg.isReaded}
+                onIntoView={() => {
+                  if (!msg.isMine && !msg.isReaded) sendRead(supportId, msg.id);
+                  handleRead(msg.id);
+                }}
+              />
             ))}
           </div>
           <form

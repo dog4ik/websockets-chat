@@ -12,6 +12,7 @@ type ContextType = {
   socket: WebSocket | null;
   socketId?: string;
   send: (msg: string, room: string) => Promise<{ id: string }>;
+  sendRead: (to: string, msg_id: string) => void;
 };
 
 export type MsgImg = {
@@ -54,8 +55,9 @@ export type Result = {
 
 export type Read = {
   type: "Read";
-  user: string;
-  msg_id: string;
+  from: string;
+  to: string;
+  id: string;
 };
 
 export type ClientMessage =
@@ -66,6 +68,11 @@ export type ClientMessage =
       from: string;
       bytes: Uint8Array;
       message?: string;
+    }
+  | {
+      type: "Read";
+      to: string;
+      id: string;
     };
 
 export type ServerMessage =
@@ -129,10 +136,24 @@ const SocketProvider = ({ children }: { children: ReactNode }) => {
     sendMessage(JSON.stringify(message));
     return promise;
   }
+  async function sendRead(to: string, id: string) {
+    const message: ClientMessage = {
+      type: "Read",
+      to,
+      id,
+    };
+    sendMessage(JSON.stringify(message));
+  }
 
   return (
     <SocketContext.Provider
-      value={{ isConnected, socket: webSocket, socketId, send }}
+      value={{
+        isConnected,
+        socket: webSocket,
+        socketId,
+        send,
+        sendRead,
+      }}
     >
       {children}
     </SocketContext.Provider>

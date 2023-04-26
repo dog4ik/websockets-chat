@@ -66,13 +66,13 @@ const MessageBubble = ({
     >
       <p className="mb-2 break-words">{text}</p>
       <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center">
-        <StatusMark isViewed={isViewed} isSending={isSending} />
+        {isMine && <StatusMark isViewed={isViewed} isSending={isSending} />}
       </div>
     </div>
   );
 };
 const Chat = () => {
-  const { send } = useSocketContext();
+  const { send, sendRead } = useSocketContext();
   const name = useLoaderData() as string;
   const inputRef = useRef<HTMLInputElement>(null);
   const [curMessage, setCurMessage] = useState("");
@@ -116,18 +116,24 @@ const Chat = () => {
           break;
       }
     },
+    onSeen(res) {
+      console.log("heh", res.from);
+      dispatch(clientActions.readMeassage({ msgId: res.id, userId: res.from }));
+    },
   });
   const handleSend = async () => {
     if (curMessage.trim() === "") return;
     if (file) upload(file);
     const { id } = await send(curMessage, name);
+    console.log(id);
+
     dispatch(
       clientActions.pushMessage({
         id: name,
         message: {
           text: curMessage,
           id,
-          isReaded: true,
+          isReaded: false,
           isMine: true,
           date: new Date().toString(),
         },
@@ -135,6 +141,12 @@ const Chat = () => {
     );
     setCurMessage("");
     setFile(undefined);
+  };
+  const handleRead = (msgId: string) => {
+    if (client[name]?.find((item) => msgId === item.id)?.isReaded === true) {
+      return;
+    }
+    sendRead(name, msgId);
   };
   useEffect(() => {
     msgContainerRef.current?.scrollTo(0, msgContainerRef.current.scrollHeight);
@@ -183,9 +195,14 @@ const Chat = () => {
               isMine={msg.isMine}
               text={msg.text}
               onIntoView={() => {
-                dispatch(
-                  clientActions.readMeassage({ msgId: msg.id, userId: name })
-                );
+                handleRead(msg.id);
+                if (!msg.isMine)
+                  dispatch(
+                    clientActions.readMeassage({
+                      msgId: msg.id,
+                      userId: name,
+                    })
+                  );
               }}
             />
           ))}

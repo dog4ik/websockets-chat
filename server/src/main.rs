@@ -1,5 +1,5 @@
 use axum::{
-    extract::{ws::WebSocketUpgrade, Query, RawBody},
+    extract::{ws::WebSocketUpgrade, Query},
     response::Response,
     routing::{get, post},
     Extension, Router,
@@ -9,7 +9,7 @@ use serde::Deserialize;
 use server::{
     handle_socket,
     state::{IdQuery, MessagesStore},
-    Assignments, AssignmentsType, Clients, ClientsType, Image, ServerState,
+    Assignments, Clients, Image, ServerState,
 };
 use tower_http::cors::{Any, CorsLayer};
 
@@ -51,7 +51,7 @@ async fn main() {
         )
         .route("/img",post(|Extension(msg_store): Extension<MessagesStore>,Query(query): Query<IdQuery>,body: axum::body::Bytes|async move {
             let id = query.id;
-            let store = msg_store.get(&id).await.unwrap();
+            let _store = msg_store.get(&id).await.unwrap();
             let image = Image::new(body);
             match image {
                 Ok(_) => {
@@ -76,7 +76,7 @@ async fn main() {
         Extension(assignments): Extension<Assignments>,
     ) -> Response {
         let id = query.id.clone();
-        let is_support = query.is_support.clone();
+        let is_support = query.is_support;
         ws.on_upgrade(move |socket| {
             handle_socket(socket, clients, assignments, store, id, is_support)
         })

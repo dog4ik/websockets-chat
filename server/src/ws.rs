@@ -35,7 +35,7 @@ pub enum ServerMessage {
     Update,
     Disconnect,
     Result { id: String },
-    Read { id: String },
+    Read { to: String, from:String, id: String },
 }
 
 fn process_msg(msg: &Message) -> anyhow::Result<ClientMessage> {
@@ -44,6 +44,8 @@ fn process_msg(msg: &Message) -> anyhow::Result<ClientMessage> {
     }
     println!("msg: {}", msg.to_text()?);
     let cl: ClientMessage = serde_json::from_str(msg.to_text()?)?;
+    println!("parsed: {:?}", cl);
+    
     Ok(cl)
 }
 
@@ -265,7 +267,7 @@ pub async fn handle_socket(
                     ClientMessage::Image { bytes, message, to } => unimplemented!(),
                     ClientMessage::Read { to, id } => {
                         println!("read recieved");
-                        clients.send_message(to, ServerMessage::Read { id }).await.unwrap();
+                        clients.send_message(to.clone(), ServerMessage::Read {id, from:connection.id.clone(), to }).await.unwrap();
                     },
                 };
 
